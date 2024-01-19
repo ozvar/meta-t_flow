@@ -388,6 +388,11 @@ class World( object ):
         # Starting board
         self.initialize_board()
         
+# counting elapsed time (in seconds) for modified levelups
+        self.last_levelup_time = self.game_start_time
+        self.levelup_timer = 0
+        self.levelup_interval = 10 
+
         # Determine Fixed or Random Seeds
         self.fixed_seeds = True if 'random_seeds' in self.config else False
 
@@ -2982,8 +2987,6 @@ class World( object ):
 
             self.lines_cleared += numcleared
 
-            self.check_lvlup()
-
             self.lc_counter = self.lc_delay
 
             self.sim.set_board( self.new_board )
@@ -3000,12 +3003,14 @@ class World( object ):
         if self.score > self.high_score:
             self.high_score = self.score
 
-    #check to see if player leveled up from line clears
+    #check to see if player leveled up time passing since game start or last level up
     def check_lvlup( self ):
-        prev = self.level
-        self.level = int( self.lines_cleared / self.lines_per_lvl ) + self.starting_level
-
-        if self.level != prev:
+        self.levelup_timer = get_time() - self.last_levelup_time
+        print(self.levelup_timer)
+        if self.levelup_timer >= self.levelup_interval:
+            self.level += 1
+            self.levelup_timer = 0
+            self.last_levelup_time = get_time()
             self.reset_lvl_tetrises = True
             self.sounds['levelup'].play( 0 )
             self.tEvent = 'LevelUp'
@@ -3324,6 +3329,7 @@ class World( object ):
             self.send_trigger()
             self.draw()
             self.tEvent = None
+            self.check_lvlup()
             # Add check for parallel port available here ARW
             if scannermode == 1:
                 parport.setData(0)
