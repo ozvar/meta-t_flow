@@ -388,10 +388,12 @@ class World( object ):
         # Starting board
         self.initialize_board()
         
-# counting elapsed time (in seconds) for modified levelups
+        # counting elapsed time (in seconds) for modified levelups
         self.last_levelup_time = self.game_start_time
         self.levelup_timer = 0
         self.levelup_interval = 10 
+        self.fall_disabled_timer = 0
+        self.level_fall_disable_interval = 10
 
         # Determine Fixed or Random Seeds
         self.fixed_seeds = True if 'random_seeds' in self.config else False
@@ -3004,7 +3006,7 @@ class World( object ):
             self.high_score = self.score
 
     #check to see if player leveled up time passing since game start or last level up
-    def check_lvlup( self ):
+    def check_levelup( self ):
         self.levelup_timer = get_time() - self.last_levelup_time
         print(self.levelup_timer)
         if self.levelup_timer >= self.levelup_interval:
@@ -3019,6 +3021,13 @@ class World( object ):
 
         if self.level < len( self.intervals ):
             self.interval[0] = self.intervals[self.level]
+
+    #check to see if time elapsed since start of level is greater than level_fall_disabled_time
+    #if so, enable gravity and zoid spawning
+    def check_zoid_fall( self ):
+        if self.levelup_timer >= self.level_fall_disable_interval:
+            print("Start falling")
+
 
     def update_evts( self ):
         if self.u_drops + self.s_drops != 0:
@@ -3261,6 +3270,7 @@ class World( object ):
         self.episode_number = 0
 
         self.game_start_time = get_time()
+        self.last_levelup_time = self.game_start_time 
 
         self.gameover_params = {'size' : self.gameover_fixcross_size,
                         'width' : self.gameover_fixcross_width,
@@ -3329,11 +3339,11 @@ class World( object ):
             self.send_trigger()
             self.draw()
             self.tEvent = None
-            self.check_lvlup()
             # Add check for parallel port available here ARW
             if scannermode == 1:
                 parport.setData(0)
         if self.state == self.STATE_PLAY:
+            self.check_levelup()
             self.log_world()
     ###
 
