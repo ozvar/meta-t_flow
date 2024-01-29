@@ -391,12 +391,9 @@ class World( object ):
         # counting elapsed time (in seconds) for modified levelups
         self.last_levelup_time = self.game_start_time
         self.levelup_timer = 0
-        #self.levelup_interval = 10 
         self.fall_disable_timer = 0
-        #self.fall_disable_interval = 2 
-
-        # toggle to retain or skip gameover animation
-        self.skip_gameover_anim = True
+        self.get_ready_duration = 4
+        self.get_ready_sound_played = False
 
         # Determine Fixed or Random Seeds
         self.fixed_seeds = True if 'random_seeds' in self.config else False
@@ -687,6 +684,7 @@ class World( object ):
         self.sounds['slam'] = pygame.mixer.Sound( "media" + sep + "slam.wav" )
         self.sounds['keep'] = pygame.mixer.Sound( "media" + sep + "keep.wav" )
         self.sounds['solved1'] = pygame.mixer.Sound( "media" + sep + "solved_blip.wav" )
+        self.sounds['get_ready'] = pygame.mixer.Sound( "media" + sep + "clear4.wav" )
         for s in self.sounds:
             self.sounds[s].set_volume( self.sfx_vol )
         self.soundrand = random.Random()
@@ -992,6 +990,7 @@ class World( object ):
         self.set_var('starting_level', 0, 'int')
         self.set_var('levelup_interval', 90, 'int')
         self.set_var('fall_disable_interval', 2, 'int')
+        self.set_var('skip_gameover_anim', True, 'bool')
 
 
         self.set_var('ep_screenshots', False, 'bool')
@@ -3026,6 +3025,7 @@ class World( object ):
             self.tEvent = 'LevelUp'
             self.send_trigger()
             self.log_game_event( "LEVELUP", self.level)
+            self.get_ready_sound_played = False
 
         if self.level < len( self.intervals ):
             self.interval[0] = self.intervals[self.level]
@@ -3038,7 +3038,10 @@ class World( object ):
             self.state = self.STATE_PLAY
         else:
             self.state = self.STATE_PAUSE
-
+        self.ready_warning_time = self.fall_disable_interval - self.get_ready_duration
+        if not self.get_ready_sound_played and  self.fall_disable_timer >= self.ready_warning_time:
+            self.sounds['get_ready'].play( 0 )
+            self.get_ready_sound_played = True
 
     def update_evts( self ):
         if self.u_drops + self.s_drops != 0:
@@ -3254,7 +3257,8 @@ class World( object ):
 
 
         #reset score
-        #self.level = self.starting_level
+        if not self.skip_gameover_anim:
+            self.level = self.starting_level
         self.lines_cleared = 0
         self.score = 0
         self.prev_tetris = 0
