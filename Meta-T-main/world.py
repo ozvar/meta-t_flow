@@ -391,9 +391,9 @@ class World( object ):
         # counting elapsed time (in seconds) for modified levelups
         self.last_levelup_time = self.game_start_time
         self.levelup_timer = 0
-        self.levelup_interval = 10 
+        #self.levelup_interval = 10 
         self.fall_disable_timer = 0
-        self.fall_disable_interval = 2 
+        #self.fall_disable_interval = 2 
 
         # toggle to retain or skip gameover animation
         self.skip_gameover_anim = True
@@ -990,6 +990,8 @@ class World( object ):
         self.set_var('show_high_score', False, 'bool')
 
         self.set_var('starting_level', 0, 'int')
+        self.set_var('levelup_interval', 90, 'int')
+        self.set_var('fall_disable_interval', 2, 'int')
 
 
         self.set_var('ep_screenshots', False, 'bool')
@@ -3031,7 +3033,7 @@ class World( object ):
     # enable zoid falling if disable timer has expired
     def enable_zoid_fall( self ):
         self.fall_disable_timer = get_time() - self.last_levelup_time
-        #print(f'Fall disable timer: {self.fall_disable_timer}')
+        print(f'Fall disable timer: {self.fall_disable_timer}')
         if self.fall_disable_timer >= self.fall_disable_interval:
             self.state = self.STATE_PLAY
         else:
