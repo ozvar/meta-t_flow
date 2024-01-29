@@ -1,5 +1,5 @@
 """
-John K. Lindstedt
+Johnr k. Lindstedt
 
     To-dos:
 
@@ -392,8 +392,11 @@ class World( object ):
         self.last_levelup_time = self.game_start_time
         self.levelup_timer = 0
         self.levelup_interval = 10 
-        self.fall_disabled_timer = 0
-        self.level_fall_disable_interval = 10
+        self.fall_disable_timer = 0
+        self.fall_disable_interval = 2 
+
+        # toggle to retain or skip gameover animation
+        self.skip_gameover_anim = True
 
         # Determine Fixed or Random Seeds
         self.fixed_seeds = True if 'random_seeds' in self.config else False
@@ -2070,15 +2073,16 @@ class World( object ):
             self.draw_game()
 
         #animate
-        elif tick > 0 and tick <= self.gameover_tick_max:
-            ix = 0
-            iy = 0
-            for i in range( 0, int(tick / 2) ):
-                for j in self.gameover_board[i]:
-                    self.draw_square( self.gamesurf, ix, iy, color_id = self.zoidrand.randint( 1, 7 ) )
-                    ix += self.side
+        if tick > 0 and tick <= self.gameover_tick_max:
+            if not self.skip_gameover_anim: 
                 ix = 0
-                iy += self.side
+                iy = 0
+                for i in range( 0, int(tick / 2) ):
+                    for j in self.gameover_board[i]:
+                        self.draw_square( self.gamesurf, ix, iy, color_id = self.zoidrand.randint( 1, 7 ) )
+                        ix += self.side
+                    ix = 0
+                    iy += self.side
 
             if not self.inverted:
                 self.worldsurf.blit( self.gamesurf, self.gamesurf_rect )
@@ -2087,35 +2091,36 @@ class World( object ):
 
         #give gameover message
         elif tick > self.gameover_tick_max:
-            self.draw_text_box()
-            msg0 = "GAME OVER"
-            msg1 = "Continue? ["+str(self.continues)+"]"
+            if not self.skip_gameover_anim:
+                self.draw_text_box()
+                msg0 = "GAME OVER"
+                msg1 = "Continue? ["+str(self.continues)+"]"
 
-            if pygame.joystick.get_count() > 0:
-                msg2 = "Press START"
-            else:
-                msg2 = "Press Spacebar"
-            offset = 36
-            colors =  self.NES_colors[self.level%len(self.NES_colors)]
-            col = colors[1]
+                if pygame.joystick.get_count() > 0:
+                    msg2 = "Press START"
+                else:
+                    msg2 = "Press Spacebar"
+                offset = 36
+                colors =  self.NES_colors[self.level%len(self.NES_colors)]
+                col = colors[1]
 
-            time_up = (get_time() - self.time_limit_start) >= self.time_limit
-            game_complete = self.episode_number == self.max_eps - 1
-            if self.continues == 0 or time_up:
-                msg1 = ""
-                msg2 = ""
-                offset = 0
-                col = colors[0]
-            if time_up:
-                msg0 = "TIME'S UP!"
-            elif game_complete:
-                msg0 = "COMPLETED!"
-            elif self.continues < 0:
-                msg1 = "Continue?"
-            self.draw_text( msg0, self.end_font, col, ( self.gamesurf_rect.centerx, self.gamesurf_rect.centery - offset ), self.worldsurf )
-            self.draw_text( msg1, self.scores_font, self.end_text_color, ( self.gamesurf_rect.centerx, self.gamesurf_rect.centery + offset ), self.worldsurf )
-            if ((tick - self.gameover_tick_max) / (self.fps * 2))% 2 == 0:
-                self.draw_text( msg2, self.scores_font, self.end_text_color, ( self.gamesurf_rect.centerx, self.gamesurf_rect.centery + (3 * offset) ), self.worldsurf )
+                time_up = (get_time() - self.time_limit_start) >= self.time_limit
+                game_complete = self.episode_number == self.max_eps - 1
+                if self.continues == 0 or time_up:
+                    msg1 = ""
+                    msg2 = ""
+                    offset = 0
+                    col = colors[0]
+                if time_up:
+                    msg0 = "TIME'S UP!"
+                elif game_complete:
+                    msg0 = "COMPLETED!"
+                elif self.continues < 0:
+                    msg1 = "Continue?"
+                self.draw_text( msg0, self.end_font, col, ( self.gamesurf_rect.centerx, self.gamesurf_rect.centery - offset ), self.worldsurf )
+                self.draw_text( msg1, self.scores_font, self.end_text_color, ( self.gamesurf_rect.centerx, self.gamesurf_rect.centery + offset ), self.worldsurf )
+                if ((tick - self.gameover_tick_max) / (self.fps * 2))% 2 == 0:
+                    self.draw_text( msg2, self.scores_font, self.end_text_color, ( self.gamesurf_rect.centerx, self.gamesurf_rect.centery + (3 * offset) ), self.worldsurf )
 
         self.gameover_anim_tick += self.ticks_per_frame
 
@@ -2136,6 +2141,7 @@ class World( object ):
             self.worldsurf.fill( ( 0, 0, 0 ) )
             self.draw_pause()
         elif self.state == self.STATE_GAMEOVER:
+            self.input_continue()
             self.draw_game_over()
             self.draw_scores()
             self.draw_borders()
@@ -3008,7 +3014,7 @@ class World( object ):
     #check to see if player leveled up time passing since game start or last level up
     def check_levelup( self ):
         self.levelup_timer = get_time() - self.last_levelup_time
-        print(self.levelup_timer)
+        print(f'Levelup timer: {self.levelup_timer}')
         if self.levelup_timer >= self.levelup_interval:
             self.level += 1
             self.levelup_timer = 0
@@ -3022,11 +3028,14 @@ class World( object ):
         if self.level < len( self.intervals ):
             self.interval[0] = self.intervals[self.level]
 
-    #check to see if time elapsed since start of level is greater than level_fall_disabled_time
-    #if so, enable gravity and zoid spawning
-    def check_zoid_fall( self ):
-        if self.levelup_timer >= self.level_fall_disable_interval:
-            print("Start falling")
+    # enable zoid falling if disable timer has expired
+    def enable_zoid_fall( self ):
+        self.fall_disable_timer = get_time() - self.last_levelup_time
+        #print(f'Fall disable timer: {self.fall_disable_timer}')
+        if self.fall_disable_timer >= self.fall_disable_interval:
+            self.state = self.STATE_PLAY
+        else:
+            self.state = self.STATE_PAUSE
 
 
     def update_evts( self ):
@@ -3168,6 +3177,7 @@ class World( object ):
         self.initialize_board()
 
         #increment game number
+        print(f'Game number: {self.game_number}')
         self.game_number += 1
 
         if self.fixed_seeds:
@@ -3242,7 +3252,7 @@ class World( object ):
 
 
         #reset score
-        self.level = self.starting_level
+        #self.level = self.starting_level
         self.lines_cleared = 0
         self.score = 0
         self.prev_tetris = 0
@@ -3270,7 +3280,6 @@ class World( object ):
         self.episode_number = 0
 
         self.game_start_time = get_time()
-        self.last_levelup_time = self.game_start_time 
 
         self.gameover_params = {'size' : self.gameover_fixcross_size,
                         'width' : self.gameover_fixcross_width,
@@ -3343,8 +3352,10 @@ class World( object ):
             if scannermode == 1:
                 parport.setData(0)
         if self.state == self.STATE_PLAY:
-            self.check_levelup()
             self.log_world()
+        if self.state == self.STATE_PLAY or self.state == self.STATE_PAUSE:
+            self.check_levelup()
+            self.enable_zoid_fall()
     ###
 
     #Twisted event loop setup
