@@ -57,12 +57,10 @@ packaging==21.3
 pandas==1.4.2
 parso==0.8.3
 Pillow==9.1.0
-pocketsphinx==0.1.15
 proglog==0.1.9
 proto-plus==1.20.3
 protobuf==3.20.0
 psutil==5.9.0
-PsychoPy==2022.1.2
 psychtoolbox==3.0.18.2
 pyasn1==0.4.8
 pyasn1-modules==0.2.8
