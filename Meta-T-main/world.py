@@ -369,6 +369,7 @@ class World( object ):
 
         # Scoring and leveling
         self.level = self.starting_level
+        self.final_level = self.starting_level + 10
         self.lines_cleared = 0
         self.score = 0
         self.high_score = 0
@@ -391,6 +392,7 @@ class World( object ):
         # counting elapsed time (in seconds) for modified levelups
         self.last_levelup_time = self.game_start_time
         self.levelup_timer = 0
+        self.final_pause_timer = 0
         self.fall_disable_timer = 0
         self.get_ready_duration = 4
         self.get_ready_sound_played = False
@@ -989,6 +991,8 @@ class World( object ):
 
         self.set_var('starting_level', 0, 'int')
         self.set_var('levelup_interval', 90, 'int')
+        self.set_var('number_of_levels', 10, 'int')
+        self.set_var('final_pause_duration', 300, 'int')
         self.set_var('fall_disable_interval', 2, 'int')
         self.set_var('skip_gameover_anim', True, 'bool')
 
@@ -2065,6 +2069,19 @@ class World( object ):
             for i in range( 1 , self.game_ht ):
                 pygame.draw.line( self.gamesurf, self.gridlines_color, (0, i * self.side - 1), (self.gamesurf_rect.width, i*self.side - 1) , 2)
 
+    def do_gameover_anim( self ):
+        if not self.skip_gameover_anim:
+            print("Do gameover anim")
+            return True 
+        else:
+            if self.level >= self.starting_level + self.number_of_levels:
+               if self.final_pause_timer >= self.final_pause_duration:
+                   print("Do gameover anim")
+                   return True
+               else:
+                   print("Skip gameover anim")
+                   return False
+
     #draw gameover animation and message
     def draw_game_over( self ):
         
@@ -2075,7 +2092,7 @@ class World( object ):
 
         #animate
         if tick > 0 and tick <= self.gameover_tick_max:
-            if not self.skip_gameover_anim: 
+            if self.do_gameover_anim(): 
                 ix = 0
                 iy = 0
                 for i in range( 0, int(tick / 2) ):
@@ -2092,7 +2109,7 @@ class World( object ):
 
         #give gameover message
         elif tick > self.gameover_tick_max:
-            if not self.skip_gameover_anim:
+            if self.do_gameover_anim():
                 self.draw_text_box()
                 msg0 = "GAME OVER"
                 msg1 = "Continue? ["+str(self.continues)+"]"
@@ -3015,7 +3032,7 @@ class World( object ):
     #check to see if player leveled up time passing since game start or last level up
     def check_levelup( self ):
         self.levelup_timer = get_time() - self.last_levelup_time
-        print(f'Levelup timer: {self.levelup_timer}')
+        #print(f'Levelup timer: {self.levelup_timer}')
         if self.levelup_timer >= self.levelup_interval:
             self.level += 1
             self.levelup_timer = 0
@@ -3033,7 +3050,7 @@ class World( object ):
     # enable zoid falling if disable timer has expired
     def enable_zoid_fall( self ):
         self.fall_disable_timer = get_time() - self.last_levelup_time
-        print(f'Fall disable timer: {self.fall_disable_timer}')
+        #print(f'Fall disable timer: {self.fall_disable_timer}')
         if self.fall_disable_timer >= self.fall_disable_interval:
             self.state = self.STATE_PLAY
         else:
@@ -3042,6 +3059,18 @@ class World( object ):
         if not self.get_ready_sound_played and  self.fall_disable_timer >= self.ready_warning_time:
             self.sounds['get_ready'].play( 0 )
             self.get_ready_sound_played = True
+
+
+    def pause_and_end_game( self ):
+        self.final_pause_timer = get_time() - self.last_levelup_time
+        #print(f'Final pause timer: {self.final_pause_timer}')
+        #print(f'State: {self.state}')
+        if self.final_pause_timer <= self.final_pause_duration:
+            if self.state == self.STATE_PLAY:
+                self.state = self.STATE_PAUSE
+        else:
+            self.state = self.STATE_GAMEOVER
+
 
     def update_evts( self ):
         if self.u_drops + self.s_drops != 0:
@@ -3359,9 +3388,12 @@ class World( object ):
                 parport.setData(0)
         if self.state == self.STATE_PLAY:
             self.log_world()
-        if self.state == self.STATE_PLAY or self.state == self.STATE_PAUSE:
-            self.check_levelup()
-            self.enable_zoid_fall()
+        if self.level - self.starting_level >= self.number_of_levels:
+            self.pause_and_end_game()
+        else:
+            if self.state == self.STATE_PLAY or self.state == self.STATE_PAUSE:
+                self.check_levelup()
+                self.enable_zoid_fall()
     ###
 
     #Twisted event loop setup
