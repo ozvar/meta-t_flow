@@ -1917,7 +1917,7 @@ class World( object ):
             self.draw_kept_zoid()
 
 
-        if visible_game_info:
+        if self.visible_game_info:
             self.draw_text( "Game %d" % self.game_number, self.intro_font, ( 196, 196, 196 ), ( self.gamesurf_rect.centerx, self.gamesurf_rect.top / 2 ), self.worldsurf )
 
     ###
@@ -2037,7 +2037,7 @@ class World( object ):
                 self.tetris_flash_tick -= 1
             self.gamesurf.fill( self.bg_color )
             self.draw_game()
-            if visible_game_info:
+            if self.visible_game_info:
                 self.draw_scores()
             self.draw_borders()
         elif self.state == self.STATE_PAUSE:
