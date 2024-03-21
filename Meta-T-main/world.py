@@ -877,6 +877,8 @@ class World( object ):
         self.set_var('final_pause_duration', 300, 'int')
         self.set_var('fall_disable_interval', 2, 'int')
         self.set_var('skip_gameover_anim', True, 'bool')
+        self.set_var('reset_board_on_levelup', True, 'bool')
+        self.set_var('disable_manual_drop', False, 'bool')
 
 
         self.set_var('ep_screenshots', False, 'bool')
@@ -1916,7 +1918,6 @@ class World( object ):
             self.keptsurf.fill( self.kept_bgc )
             self.draw_kept_zoid()
 
-
         if self.visible_game_info:
             self.draw_text( "Game %d" % self.game_number, self.intro_font, ( 196, 196, 196 ), ( self.gamesurf_rect.centerx, self.gamesurf_rect.top / 2 ), self.worldsurf )
 
@@ -2326,6 +2327,7 @@ class World( object ):
                                     self.input_slam()
                                     self.input_undo()
                                 else:
+                                    self.tEvent = 'KeyPressDown'
                                     self.input_start_drop()
                             elif pressed == "UP":
                                 self.last_ud_pressed = pressed
@@ -2362,6 +2364,7 @@ class World( object ):
                                 self.input_slam()
                                 self.input_undo()
                             else:
+                                self.tEvent = 'KeyPressDown'
                                 self.input_start_drop()
                         elif event.button == self.JOY_UP:
                             if self.inverted:
@@ -2577,8 +2580,9 @@ class World( object ):
 
     #initiates a user drop
     def input_start_drop( self ):
-        self.add_latency("DN", kp = True, drop = True)
-        self.interval_toggle = 1
+        if not self.disable_manual_drop:
+            self.add_latency("DN", kp = True, drop = True)
+            self.interval_toggle = 1
 
     #terminates a user drop
     def input_stop_drop( self ):
@@ -2977,7 +2981,7 @@ class World( object ):
     #check to see if player leveled up time passing since game start or last level up
     def check_levelup( self ):
         self.levelup_timer = get_time() - self.last_levelup_time
-        print(f'Levelup timer: {self.levelup_timer}')
+        #print(f'Levelup timer: {self.levelup_timer}')
         if self.levelup_timer >= self.levelup_interval:
             self.level += 1
             self.levelup_timer = 0
@@ -2988,6 +2992,8 @@ class World( object ):
             self.send_trigger()
             self.log_game_event( "LEVELUP", self.level)
             self.get_ready_sound_played = False
+            if self.reset_board_on_levelup:
+                self.initialize_board()
 
         if self.level < len( self.intervals ):
             self.interval[0] = self.intervals[self.level]
