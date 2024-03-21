@@ -1,145 +1,6 @@
-"""
-Johnr k. Lindstedt
-
-    To-dos:
-
-
-        - Log Epistemic Action things, log Rotations, Translations, Etc.
-        - Log Episode Duration
-        - Program to split data files up by episode and game.
-
-        - Eric Demaine (sp?) - ideal performer, complexity, etc.
-        - t-spin, any-spin
-        - grace period;
-        - ideal performer and/or AI
-
-        - Logging summaries:
-          - sequencing
-          - latency
-          - PITS / DEEP PITS / OVERHANGS
-          -
-
-
-        squish the DROP / PAUSE bug
-        little issue with charging AS something drops.
-
-        -IMPLEMENT A POST-GAME EVENT LOGGING SYSTEM FOR THE MAIN LOG
-        -ALSO LOG ALL CONFIG EVENTS
-        -AND REDUCE THE WHOLE GODDAMN LOG SIZE
-        -Add the command line hooks for various necessary items
-
-        -reimplement the "header section" of the log file.
-           -There's no reason not to have this, despite what was previously discussed
-
-
-        -Implement first-person tetris
-
-        -implement grace period
-            -implied soft-drop when enabled
-            -make SLAMS skip this timer
-
-        -implement multiple look-aheads
-            -need a rotating queue structure
-
-        -implement history file logging (PySide needed -_-)
-
-        -implement dialog box for inputting experiment information
-            -Need to be hashed
-
-        -Create package of VERSION 1;
-            -For package bundling, move config files outside - referencing outside
-
-        -Revamp the draw-cycle so we can hit 60 fps again
-            - Implement lazy drawing? (changes only needed at PIECE-PLACED, LC-DELAY ANIMATION STEPS, ARE-DELAY start, NEW PIECE start)
-        -Chug is still happening in strange spots, rather infrequently; need to make sure this isn't still from GC or key-repeat.
-
-        - idea for a very subtle manipulation: change which direction the ONLY rotate key rotates the zoid
-        - allow people to gain expertise, and see how it affects their treating of the L and J blocks, as well as tetris-candidate column selection
-        -
-
-
-        -implement Random-arrow-keybindings mode
-
-        -files:
-            --> .config file
-            <-- History file
-            <-- Log file
-            <-- Eye file
-            <-- Episode aggregate file?
-
-
-        -implement arbitrary keybindings using vars(pygame_key)
-        -implement random next box position per trial
-        -implement extra option for next-mask uncovering DURING delay phase
-
-        -implement swappable board-piece invisibility
-
-        -implement ALL KINDS of lagtris
-            -constant in all inputs
-            -random in all game-events, but not PLAYER events
-            -random, but about an average
-            -some simulation of net-play lag...
-            -reduced framerate, but with the same underlying game
-            ?how do players deal with lag? What are their limits of "dealing"?
-
-        -Random or NO auditory feedback (see how the auditory cues influence gameplay)
-
-        -logging:
-            -need two modes: verbose and compact
-                -all session-constants can be logged separately in compact mode
-                -all session-constants included in state logging in verbose mode (current default)
-            -centroids
-            -current Tetris Version / logging version
-            -key releases
-            -zoid randomizer seed
-
-        -ssvep-ready flicker mode...
-            - hz, categories
-
-        -implement ACT-R interactivity (once I get Ryan's device)
-
-        -implement "quiz" mode
-            -instantaneous
-            -two-step
-            -build-up
-
-        -implement playback mode
-
-        -implement Bastard mode (rearrange board when looking away)
-            -levels of disruption: whole, partial, single, (incremental), (stochastic)
-
-        -implement CPTetris:
-            -NBack or AX-CPT
-                -only make piece valid (stamped and placed) when a "hit"
-                -i.e., comes after a proper cue or is same as the nth-back piece...
-
-        Game modes:
-            Pentix vs Classic
-            Upsidedown vs rightsideup
-            Rational vs time pressured
-            look ahead amount
-            congruent controls?
-            Invisible
-
-
-
-
-    Upstream:
-        -Get the logs into good format with robust information:
-            -On-line fixation and ROI processing
-            -On-line optimality metrics (both board and piece)
-                -Piece metrics can include CHOSEN location among 'good' locations (ROIs for these?)
-        -On-line sequence processing? (ROIs, actions, and sysevts)
-        -EEG integration? (at least sending event tags)
-        -Integrate PyCogWorks for RIN and such
-        -Considerations for packaging this as a 'take-home' app for participants.
-
-
-
-"""
-
 from twisted.internet import reactor
 from twisted.internet.task import LoopingCall
+#from ctypes import windll
 
 import os
 import sys
@@ -151,9 +12,18 @@ import platform
 import random
 import tkinter
 from tkinter import simpledialog
-import parallel
+#import parallel
 
 import pygame, numpy
+
+#PH midi input
+from pygame import midi
+#import midis2events
+
+#pport = windll.inpoutx64    #initiating the pport dll file
+#pportaddress = 0xEFF8      #set port address
+
+#pport.Out32(pportaddress, 0)  #sample trigger
 
 from zoid import Zoid
 #from boardstats import TetrisBoardStats
@@ -186,7 +56,7 @@ get_time = time.time
 
 sep = "/"
 if platform.system() == 'Windows':
-    get_time = time.clock
+    #get_time = time.clock
 
     sep = "/"
     
@@ -196,11 +66,13 @@ scannermode = 0
 if scannermode == 1:
     #logFile.write('Experiment run in the scanner\n\n')
     # select the correct port
-    parport = parallel.Parallel('/dev/parport0')    
+    #parport = parallel.Parallel('LPT3')    
     # MUST set the read/write mode in linux, 0=read 1=write 
-    parport.setDataDir(1)    
+    #parport.setDataDir(1)    
     # set the parallel port data pins (2-9) to zero before we start
-    parport.setData(0)
+    #parport.setData(0)
+    pport.Out32(pportaddress, 0)
+    print('rubish')
 
     
 
@@ -285,6 +157,15 @@ class World( object ):
         ## Input init
 
         #...# provide a function for setting game controls here.
+
+        #PH intialise midi
+        midi.init()
+        if midi.get_count() > 0:            
+            self.midi_in_id = midi.get_default_input_id()
+            self.midi_info = midi.get_device_info(self.midi_in_id) 
+            print("MIDI DEV ID " + str(self.midi_in_id))
+            print(self.midi_info)
+            self.midi_in = midi.Input(self.midi_in_id)
 
         #initialize joystick
         pygame.joystick.init()
@@ -859,6 +740,7 @@ class World( object ):
         self.set_var('song', "korobeiniki", 'string')
 
         self.set_var('fullscreen', False, 'bool')
+        self.set_var('visible_game_info', True, 'bool')
 
 
         # Frames per second, updates per frame
@@ -1538,7 +1420,8 @@ class World( object ):
         # handles sending of event triggers to MEG
         if self.tEvent != None:
             if scannermode == 1:
-                parport.setData(self.tValues[f'{self.tEvent}'])
+                #parport.setData(self.tValues[f'{self.tEvent}'])
+                pport.Out32(pportaddress, self.tValues[f'{self.tEvent}'])
             # for now just log trigger events in console
             print(f'sent {self.tEvent} trigger with bit value of {self.tValues[self.tEvent]}')
 
@@ -2034,7 +1917,8 @@ class World( object ):
             self.draw_kept_zoid()
 
 
-        self.draw_text( "Game %d" % self.game_number, self.intro_font, ( 196, 196, 196 ), ( self.gamesurf_rect.centerx, self.gamesurf_rect.top / 2 ), self.worldsurf )
+        if visible_game_info:
+            self.draw_text( "Game %d" % self.game_number, self.intro_font, ( 196, 196, 196 ), ( self.gamesurf_rect.centerx, self.gamesurf_rect.top / 2 ), self.worldsurf )
 
     ###
 
@@ -2153,7 +2037,8 @@ class World( object ):
                 self.tetris_flash_tick -= 1
             self.gamesurf.fill( self.bg_color )
             self.draw_game()
-            self.draw_scores()
+            if visible_game_info:
+                self.draw_scores()
             self.draw_borders()
         elif self.state == self.STATE_PAUSE:
             self.worldsurf.fill( ( 0, 0, 0 ) )
@@ -2180,11 +2065,28 @@ class World( object ):
     ####
     #  Input
     ####
-
+    #
     #processes all relevant game input
     def process_input( self ):
+        #PH this is how to get midi input
+
+        eventList = midi.midis2events(self.midi_in.read(40), self.midi_in)
+        #eventList.append(pygame.event.get())
+        for event in eventList:
+            if event.type == pygame.MIDIIN:
+                #print("Note On")
+                print(event)
+                pygame.event.post(event) #add to the event queue
+                #event is list of {'status': int, 'data1': int, 'data2', int, 'data3', int, 'timestamp'}
+                #'status' =  144 (key down), 128 (key up)
+                #'data1' = note (60 is middle C)
+                #'data2' = velocity (only works for keydown, otherwise 64)
+        #self.midi_in
+        #print(midi_in)
         for event in pygame.event.get():
             #print(event)
+            #if event.type in [pygame.midi.MIDIIN]: #PH
+            #    print (event)
             if event.type == pygame.KEYUP or event.type == pygame.KEYDOWN:
                 dir = "PRESS" if event.type == pygame.KEYDOWN else "RELEASE"
                 self.tEvent = 'KeyPress'
@@ -2192,8 +2094,13 @@ class World( object ):
             elif event.type == pygame.JOYBUTTONUP or event.type == pygame.JOYBUTTONDOWN:
                 dir = "PRESS" if event.type == pygame.JOYBUTTONDOWN else "RELEASE"
                 self.log_game_event( "KEYPRESS", dir, self.buttons[event.button] )
-
-
+            elif event.type == pygame.MIDIIN:
+                if event.status == 144:
+                    self.tEvent = 'KeyPress'
+                    dir = "PRESS"
+                elif event.status == 128:
+                    dir = "RELEASE"
+                self.log_game_event( "KEYPRESS", dir, event.data1)
             #Universal controls
 
             #escape clause
@@ -2501,6 +2408,44 @@ class World( object ):
                     if not self.two_player or event.joy == 1:
                         if event.button == self.JOY_SELECT:
                             self.input_mask_toggle(False)
+                #PH MIDI
+                elif event.type == pygame.MIDIIN:
+                    if event.status == 144:
+                        print("MKey Down")
+                        if event.data1 == 72:
+                            self.tEvent = 'KeyPressLeft'
+                            self.input_trans_left()
+                            self.das_held = -1
+                        elif event.data1 == 76:
+                            self.tEvent = 'KeyPressRight'
+                            self.input_trans_right()
+                            self.das_held = 1
+                        elif event.data1 == 74:
+                            
+                            if self.inverted:
+                                self.tEvent = 'KeyPressClockwise'
+                                self.input_rotate_single()
+                            else:
+                                self.tEvent = 'KeyPressDown'
+                                self.input_start_drop()
+                        elif event.data1 == 48:
+                            if self.inverted:
+                                self.tEvent = 'KeyPressDown'
+                                self.input_start_drop()
+                            else:
+                                self.tEvent = 'KeyPressClockwise'
+                                self.input_rotate_single()
+                    elif event.status == 128:
+                        print("MKey Up")
+                        if event.data1 == 72:
+                            #print("stop drop")
+                            self.input_trans_stop(-1)
+                        elif event.data1 == 76:
+                            self.input_trans_stop(1)
+                        elif event.data1 == 74:
+                            self.input_stop_drop()
+                        elif event.data1 == 48 and self.inverted:
+                            self.input_stop_drop()
 
             elif self.state == self.STATE_PAUSE:
                 if event.type == pygame.KEYDOWN:
@@ -3032,7 +2977,7 @@ class World( object ):
     #check to see if player leveled up time passing since game start or last level up
     def check_levelup( self ):
         self.levelup_timer = get_time() - self.last_levelup_time
-        #print(f'Levelup timer: {self.levelup_timer}')
+        print(f'Levelup timer: {self.levelup_timer}')
         if self.levelup_timer >= self.levelup_interval:
             self.level += 1
             self.levelup_timer = 0
@@ -3060,7 +3005,6 @@ class World( object ):
             self.sounds['get_ready'].play( 0 )
             self.get_ready_sound_played = True
 
-
     def pause_and_end_game( self ):
         self.final_pause_timer = get_time() - self.last_levelup_time
         #print(f'Final pause timer: {self.final_pause_timer}')
@@ -3070,7 +3014,6 @@ class World( object ):
                 self.state = self.STATE_PAUSE
         else:
             self.state = self.STATE_GAMEOVER
-
 
     def update_evts( self ):
         if self.u_drops + self.s_drops != 0:
@@ -3385,7 +3328,8 @@ class World( object ):
             self.tEvent = None
             # Add check for parallel port available here ARW
             if scannermode == 1:
-                parport.setData(0)
+                #parport.setData(0)
+                pport.Out32(pportaddress, 0) #PH do we need this
         if self.state == self.STATE_PLAY:
             self.log_world()
         if self.level - self.starting_level >= self.number_of_levels:
