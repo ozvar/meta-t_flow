@@ -708,8 +708,8 @@ class World( object ):
         #print(self.config)
 
         #read once for value
-        self.set_var('logdir', 'data', 'string')
         self.set_var('SID', 'Test', 'string')
+        self.set_var('logdir', 'data', 'string')
 
         self.set_var('RIN', '000000000', 'string')
 
@@ -1010,7 +1010,7 @@ class World( object ):
         if self.args.logfile:
 
             self.filename = self.SID + "_" + self.args.logfile
-            self.logname = os.path.join( self.logdir, self.filename )
+            self.logname = os.path.join( self.logdir, self.SID, self.filename )
 
             if not os.path.exists( self.logdir ):
                 os.makedirs( self.logdir )
