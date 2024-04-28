@@ -874,6 +874,7 @@ class World( object ):
         self.set_var('show_high_score', False, 'bool')
 
         self.set_var('input_delay', 0, 'int')
+        self.set_var('delay_randomization', 0, 'float')
         self.set_var('starting_level', 0, 'int')
         self.set_var('levelup_interval', 90, 'int')
         self.set_var('number_of_levels', 10, 'int')
@@ -2074,8 +2075,8 @@ class World( object ):
     #
     #processes all relevant game input
     def process_input( self ):
-        input_delay_seconds = self.input_delay / 1000
         #PH this is how to get midi input
+        input_delay_seconds = self.adjust_input_delay()
 
         eventList = midi.midis2events(self.midi_in.read(40), self.midi_in)
         #eventList.append(pygame.event.get())
@@ -2118,7 +2119,15 @@ class World( object ):
                 break
 
 
-    def process_event ( self , event):
+    def adjust_input_delay( self ):
+        # adds a small random perturbation to the input delay if delay randomization is enable_zoid_fall
+        delay_factor = self.input_delay * self.delay_randomization
+        input_delay = self.input_delay + random.uniform(-delay_factor, delay_factor)
+        # convert input delay to seconds before return
+        return input_delay / 1000 
+
+
+    def process_event( self , event):
     # processes input event passed from process_input
 
         #print(event)
