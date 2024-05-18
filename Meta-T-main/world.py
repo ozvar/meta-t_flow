@@ -10,8 +10,8 @@ import json
 import datetime
 import platform
 import random
-import tkinter
-from tkinter import simpledialog
+#import tkinter
+#from tkinter import simpledialog
 from collections import deque
 #import parallel
 
