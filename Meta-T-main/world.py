@@ -15,7 +15,8 @@ import random
 from collections import deque
 #import parallel
 
-import pygame, numpy
+import pygame
+import numpy as np
 
 #PH midi input
 from pygame import midi
@@ -39,8 +40,6 @@ try:
     print("Pyview pygame support success.")
     from pyviewx.pygame import Validator
     print("Pyview validator support success.")
-    import numpy as np
-    print("numpy success")
     eyetrackerSupport = True
 except ImportError:
     print("Warning: Eyetracker not supported on this machine.")
@@ -248,6 +247,7 @@ class World( object ):
         #pygame.key.set_repeat( self.das_delay, self.das_repeat )
         self.das_timer = 0
         self.das_held = 0
+        self.das_delay_counter = 0
 
         # Scoring and leveling
         self.level = self.starting_level
@@ -875,6 +875,7 @@ class World( object ):
 
         self.set_var('input_delay', 0, 'int')
         self.set_var('delay_randomization', 0, 'float')
+        self.set_var('das_delay_randomization', 0, 'float')
         self.set_var('starting_level', 0, 'int')
         self.set_var('levelup_interval', 90, 'int')
         self.set_var('number_of_levels', 10, 'int')
@@ -2076,13 +2077,13 @@ class World( object ):
     #processes all relevant game input
     def process_input( self ):
         #PH this is how to get midi input
-        input_delay_seconds = self.adjust_input_delay()
+        self.random_input_delay = self.adjust_input_delay()
 
         eventList = midi.midis2events(self.midi_in.read(40), self.midi_in)
         #eventList.append(pygame.event.get())
         for event in eventList:
             if event.type == pygame.MIDIIN:
-                delayed_time = get_time() + input_delay_seconds
+                delayed_time = get_time() + self.random_input_delay
                 self.delayed_events.append((delayed_time, event))
                 #print("Note On")
                 print(event)
@@ -2105,7 +2106,7 @@ class World( object ):
             elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
                 self.lc.stop()
             elif self.state == self.STATE_PLAY:
-                delayed_time = get_time() + input_delay_seconds
+                delayed_time = get_time() + self.random_input_delay 
                 self.delayed_events.append((delayed_time, event))
             else:
                 self.process_event(event)
@@ -2123,6 +2124,8 @@ class World( object ):
         # adds a small random perturbation to the input delay if delay randomization is enable_zoid_fall
         delay_factor = self.input_delay * self.delay_randomization
         input_delay = self.input_delay + random.uniform(-delay_factor, delay_factor)
+        # log input delay when function is called
+        self.log_game_event("RANDOM_INPUT_DELAY_MS", np.round(input_delay))
         # convert input delay to seconds before return
         return input_delay / 1000 
 
@@ -2615,6 +2618,7 @@ class World( object ):
         if direction == self.das_held or not self.das_reversible:
             self.das_timer = 0
             self.das_held = 0
+            self.das_delay_counter = 0
         if direction == -1:
             self.add_latency("TL")
         elif direction == 1:
@@ -3069,7 +3073,7 @@ class World( object ):
         else:
             self.prop_drop = 0.0
 
-        latency_diffs = numpy.diff(self.latencies)
+        latency_diffs = np.diff(self.latencies)
         if len(latency_diffs) != 0:
             self.avg_latency = sum(latency_diffs) / (len(latency_diffs) * 1.0)
         else:
@@ -3165,16 +3169,39 @@ class World( object ):
                 self.timer = 0
                 self.curr_zoid.down( self.interval_toggle )
 
-    #def das_tick
-    def das_tick( self ):
+    # def das_tick( self ):
+    #     if not self.das_chargeable:
+    #         self.das_timer += 1
+    #     if self.das_timer >= self.das_delay and (self.das_timer - self.das_delay) % self.das_repeat == 0:
+    #         if self.das_held == -1:
+    #             self.curr_zoid.left()
+    #         elif self.das_held == 1:
+    #             self.curr_zoid.right()
+
+    def das_tick(self):
         if not self.das_chargeable:
             self.das_timer += 1
         if self.das_timer >= self.das_delay and (self.das_timer - self.das_delay) % self.das_repeat == 0:
+            # Generate a random delay value (in frames)
+            delay_frames = np.random.uniform(0, self.das_delay_randomization)
+            print(delay_frames)
             if self.das_held == -1:
-                self.curr_zoid.left()
+                if self.das_delay_counter == 0:
+                    self.das_delay_counter = delay_frames
+                else:
+                    self.das_delay_counter -= 1
+                    if self.das_delay_counter <= 0:
+                        self.curr_zoid.left()
+                        self.das_delay_counter = 0
             elif self.das_held == 1:
-                self.curr_zoid.right()
-
+                if self.das_delay_counter == 0:
+                    self.das_delay_counter = delay_frames
+                else:
+                    self.das_delay_counter -= 1
+                    if self.das_delay_counter <= 0:
+                        self.curr_zoid.right()
+                        self.das_delay_counter = 0
+            print(self.das_delay_counter)
 
     #update the on-line board statistics
     def update_stats( self ):
@@ -3296,6 +3323,7 @@ class World( object ):
         self.timer = 0
         self.das_timer = 0
         self.das_held = 0
+        self.das_delay_counter = 0
 
         self.needs_new_zoid = False
         self.are_counter = 0
