@@ -3169,39 +3169,40 @@ class World( object ):
                 self.timer = 0
                 self.curr_zoid.down( self.interval_toggle )
 
-    # def das_tick( self ):
-    #     if not self.das_chargeable:
-    #         self.das_timer += 1
-    #     if self.das_timer >= self.das_delay and (self.das_timer - self.das_delay) % self.das_repeat == 0:
-    #         if self.das_held == -1:
-    #             self.curr_zoid.left()
-    #         elif self.das_held == 1:
-    #             self.curr_zoid.right()
-
-    def das_tick(self):
+    def das_tick( self ):
         if not self.das_chargeable:
             self.das_timer += 1
         if self.das_timer >= self.das_delay and (self.das_timer - self.das_delay) % self.das_repeat == 0:
-            # Generate a random delay value (in frames)
-            delay_frames = np.random.uniform(0, self.das_delay_randomization)
-            print(delay_frames)
             if self.das_held == -1:
-                if self.das_delay_counter == 0:
-                    self.das_delay_counter = delay_frames
-                else:
-                    self.das_delay_counter -= 1
-                    if self.das_delay_counter <= 0:
-                        self.curr_zoid.left()
-                        self.das_delay_counter = 0
+                self.curr_zoid.left()
             elif self.das_held == 1:
-                if self.das_delay_counter == 0:
-                    self.das_delay_counter = delay_frames
-                else:
-                    self.das_delay_counter -= 1
-                    if self.das_delay_counter <= 0:
-                        self.curr_zoid.right()
-                        self.das_delay_counter = 0
-            print(self.das_delay_counter)
+                self.curr_zoid.right()
+
+    ##### Commented out for now as it results in unintended behavior
+    # def das_tick(self):
+    #     if not self.das_chargeable:
+    #         self.das_timer += 1
+    #     if self.das_timer >= self.das_delay and (self.das_timer - self.das_delay) % self.das_repeat == 0:
+    #         # Generate a random delay value (in frames)
+    #         delay_frames = np.random.uniform(0, self.das_delay_randomization)
+    #         print(delay_frames)
+    #         if self.das_held == -1:
+    #             if self.das_delay_counter == 0:
+    #                 self.das_delay_counter = delay_frames
+    #             else:
+    #                 self.das_delay_counter -= 1
+    #                 if self.das_delay_counter <= 0:
+    #                     self.curr_zoid.left()
+    #                     self.das_delay_counter = 0
+    #         elif self.das_held == 1:
+    #             if self.das_delay_counter == 0:
+    #                 self.das_delay_counter = delay_frames
+    #             else:
+    #                 self.das_delay_counter -= 1
+    #                 if self.das_delay_counter <= 0:
+    #                     self.curr_zoid.right()
+    #                     self.das_delay_counter = 0
+    #         print(self.das_delay_counter)
 
     #update the on-line board statistics
     def update_stats( self ):
