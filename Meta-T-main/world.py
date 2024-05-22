@@ -1014,7 +1014,7 @@ class World( object ):
 
         if self.args.logfile:
 
-            self.filename = self.SID + "_" + self.args.logfile
+            self.filename = f'{self.levelup_interval}_{self.fall_disable_interval}_{self.args.logfile}'
             self.logname = os.path.join( self.logdir, self.SID, self.filename )
 
             if not os.path.exists( self.logdir ):
