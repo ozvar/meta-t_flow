@@ -2077,12 +2077,12 @@ class World( object ):
     #processes all relevant game input
     def process_input( self ):
         #PH this is how to get midi input
-        self.random_input_delay = self.adjust_input_delay()
-
         eventList = midi.midis2events(self.midi_in.read(40), self.midi_in)
         #eventList.append(pygame.event.get())
         for event in eventList:
             if event.type == pygame.MIDIIN:
+                self.random_input_delay = self.adjust_input_delay()
+                print(self.random_input_delay)
                 delayed_time = get_time() + self.random_input_delay
                 self.delayed_events.append((delayed_time, event))
                 #print("Note On")
@@ -2097,6 +2097,8 @@ class World( object ):
 
         # Process regular Pygame events
         for event in pygame.event.get():
+            self.random_input_delay = self.adjust_input_delay()
+            print(self.random_input_delay)
             if self.state == self.STATE_INTRO:
                 if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
                     self.process_event(event)
@@ -2139,12 +2141,12 @@ class World( object ):
             self.tEvent = 'KeyPress'
             self.log_game_event( "KEYPRESS", dir, pygame.key.name(event.key))
             # log input delay when function is called
-            self.log_game_event("RANDOM_INPUT_DELAY_MS", np.round(self.input_delay))
+            self.log_game_event("RANDOM_INPUT_DELAY_MS", self.random_input_delay*1000)
         elif event.type == pygame.JOYBUTTONUP or event.type == pygame.JOYBUTTONDOWN:
             dir = "PRESS" if event.type == pygame.JOYBUTTONDOWN else "RELEASE"
             self.log_game_event( "KEYPRESS", dir, self.buttons[event.button] )
             # log input delay when function is called
-            self.log_game_event("RANDOM_INPUT_DELAY_MS", np.round(self.input_delay))
+            self.log_game_event("RANDOM_INPUT_DELAY_MS", self.random_input_delay*1000)
         elif event.type == pygame.MIDIIN:
             if event.status == 144:
                 self.tEvent = 'KeyPress'
@@ -2153,7 +2155,7 @@ class World( object ):
                 dir = "RELEASE"
             self.log_game_event( "KEYPRESS", dir, event.data1)
             # log input delay when function is called
-            self.log_game_event("RANDOM_INPUT_DELAY_MS", np.round(self.input_delay))
+            self.log_game_event("RANDOM_INPUT_DELAY_MS", self.random_input_delay*1000)
         #Universal controls
 
 
@@ -2395,7 +2397,7 @@ class World( object ):
                             self.das_held = 1
                         self.log_game_event( "KEYPRESS", "PRESS", pressed)
                         # log input delay when function is called
-                        self.log_game_event("RANDOM_INPUT_DELAY_MS", np.round(self.input_delay))
+                        self.log_game_event("RANDOM_INPUT_DELAY_MS", self.random_input_delay*1000)
                         #print("pressed", pressed)
 
 
