@@ -2124,8 +2124,6 @@ class World( object ):
         # adds a small random perturbation to the input delay if delay randomization is enable_zoid_fall
         delay_factor = self.input_delay * self.delay_randomization
         input_delay = self.input_delay + random.uniform(-delay_factor, delay_factor)
-        # log input delay when function is called
-        self.log_game_event("RANDOM_INPUT_DELAY_MS", np.round(input_delay))
         # convert input delay to seconds before return
         return input_delay / 1000 
 
@@ -2140,9 +2138,13 @@ class World( object ):
             dir = "PRESS" if event.type == pygame.KEYDOWN else "RELEASE"
             self.tEvent = 'KeyPress'
             self.log_game_event( "KEYPRESS", dir, pygame.key.name(event.key))
+            # log input delay when function is called
+            self.log_game_event("RANDOM_INPUT_DELAY_MS", np.round(self.input_delay))
         elif event.type == pygame.JOYBUTTONUP or event.type == pygame.JOYBUTTONDOWN:
             dir = "PRESS" if event.type == pygame.JOYBUTTONDOWN else "RELEASE"
             self.log_game_event( "KEYPRESS", dir, self.buttons[event.button] )
+            # log input delay when function is called
+            self.log_game_event("RANDOM_INPUT_DELAY_MS", np.round(self.input_delay))
         elif event.type == pygame.MIDIIN:
             if event.status == 144:
                 self.tEvent = 'KeyPress'
@@ -2150,6 +2152,8 @@ class World( object ):
             elif event.status == 128:
                 dir = "RELEASE"
             self.log_game_event( "KEYPRESS", dir, event.data1)
+            # log input delay when function is called
+            self.log_game_event("RANDOM_INPUT_DELAY_MS", np.round(self.input_delay))
         #Universal controls
 
 
@@ -2390,6 +2394,8 @@ class World( object ):
                             self.input_trans_right()
                             self.das_held = 1
                         self.log_game_event( "KEYPRESS", "PRESS", pressed)
+                        # log input delay when function is called
+                        self.log_game_event("RANDOM_INPUT_DELAY_MS", np.round(self.input_delay))
                         #print("pressed", pressed)
 
 
