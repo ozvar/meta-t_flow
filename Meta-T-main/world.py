@@ -155,7 +155,6 @@ class World( object ):
 
 
         ## Input init
-        self.delayed_events = deque()
 
         #...# provide a function for setting game controls here.
 
@@ -2081,13 +2080,9 @@ class World( object ):
         #eventList.append(pygame.event.get())
         for event in eventList:
             if event.type == pygame.MIDIIN:
-                self.random_input_delay = self.adjust_input_delay()
-                print(self.random_input_delay)
-                delayed_time = get_time() + self.random_input_delay
-                self.delayed_events.append((delayed_time, event))
                 #print("Note On")
                 print(event)
-                #pygame.event.post(event) #add to the event queue
+                pygame.event.post(event) #add to the event queue
                 #event is list of {'status': int, 'data1': int, 'data2', int, 'data3', int, 'timestamp'}
                 #'status' =  144 (key down), 128 (key up)
                 #'data1' = note (60 is middle C)
@@ -2097,8 +2092,6 @@ class World( object ):
 
         # Process regular Pygame events
         for event in pygame.event.get():
-            self.random_input_delay = self.adjust_input_delay()
-            print(self.random_input_delay)
             if self.state == self.STATE_INTRO:
                 if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
                     self.process_event(event)
@@ -2107,27 +2100,23 @@ class World( object ):
             #escape clause
             elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
                 self.lc.stop()
-            elif self.state == self.STATE_PLAY:
-                delayed_time = get_time() + self.random_input_delay 
-                self.delayed_events.append((delayed_time, event))
             else:
                 self.process_event(event)
-
-        while self.delayed_events:
-            delayed_time, event = self.delayed_events[0]
-            if delayed_time <= get_time():
-                self.delayed_events.popleft()
-                self.process_event(event)
-            else:
-                break
 
 
     def adjust_input_delay( self ):
-        # adds a small random perturbation to the input delay if delay randomization is enable_zoid_fall
-        delay_factor = self.input_delay * self.delay_randomization
-        input_delay = self.input_delay + random.uniform(-delay_factor, delay_factor)
+        # adds a small random perturbation to the input delay if delay randomization is enabled
+        # delay_factor = self.input_delay * self.delay_randomization
+        randomized_delay = random.uniform(0, self.input_delay)
         # convert input delay to seconds before return
-        return input_delay / 1000 
+        return randomized_delay / 1000
+
+
+    def delayed_action(self, action):
+        self.random_input_delay = self.adjust_input_delay()
+        print(self.random_input_delay*1000)
+        self.log_game_event("RANDOM_INPUT_DELAY_MS", np.round(self.random_input_delay*1000))
+        reactor.callLater(self.random_input_delay, action)
 
 
     def process_event( self , event):
@@ -2140,13 +2129,9 @@ class World( object ):
             dir = "PRESS" if event.type == pygame.KEYDOWN else "RELEASE"
             self.tEvent = 'KeyPress'
             self.log_game_event( "KEYPRESS", dir, pygame.key.name(event.key))
-            # log input delay when function is called
-            self.log_game_event("RANDOM_INPUT_DELAY_MS", self.random_input_delay*1000)
         elif event.type == pygame.JOYBUTTONUP or event.type == pygame.JOYBUTTONDOWN:
             dir = "PRESS" if event.type == pygame.JOYBUTTONDOWN else "RELEASE"
             self.log_game_event( "KEYPRESS", dir, self.buttons[event.button] )
-            # log input delay when function is called
-            self.log_game_event("RANDOM_INPUT_DELAY_MS", self.random_input_delay*1000)
         elif event.type == pygame.MIDIIN:
             if event.status == 144:
                 self.tEvent = 'KeyPress'
@@ -2154,8 +2139,6 @@ class World( object ):
             elif event.status == 128:
                 dir = "RELEASE"
             self.log_game_event( "KEYPRESS", dir, event.data1)
-            # log input delay when function is called
-            self.log_game_event("RANDOM_INPUT_DELAY_MS", self.random_input_delay*1000)
         #Universal controls
 
 
@@ -2223,22 +2206,21 @@ class World( object ):
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_LEFT or event.key == pygame.K_2:
                     self.tEvent = 'KeyPressLeft'
-                    self.input_trans_left()
+                    self.delayed_action(self.input_trans_left)
                     self.das_held = -1
                 elif event.key == pygame.K_RIGHT or event.key == pygame.K_4:
                     self.tEvent = 'KeyPressRight'
-                    self.input_trans_right()
+                    self.delayed_action(self.input_trans_right)
                     self.das_held = 1
-
                 elif event.key == pygame.K_DOWN or event.key == pygame.K_1:
                     self.tEvent = 'KeyPressDown'
                     if self.inverted:
-                        self.input_rotate_single()
+                        self.delayed_action(self.input_rotate_single)
                     else:
-                        self.input_start_drop()
+                        self.delayed_action(input_start_drop)
                 elif event.key == pygame.K_UP or event.key == pygame.K_w:
                     if self.inverted:
-                        self.input_start_drop()
+                        self.delayed_action(input_start_drop)
                     else:
                         self.input_rotate_single()
 
@@ -2396,8 +2378,6 @@ class World( object ):
                             self.input_trans_right()
                             self.das_held = 1
                         self.log_game_event( "KEYPRESS", "PRESS", pressed)
-                        # log input delay when function is called
-                        self.log_game_event("RANDOM_INPUT_DELAY_MS", self.random_input_delay*1000)
                         #print("pressed", pressed)
 
 
