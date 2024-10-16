@@ -2217,10 +2217,10 @@ class World( object ):
                     if self.inverted:
                         self.delayed_action(self.input_rotate_single)
                     else:
-                        self.delayed_action(input_start_drop)
+                        self.delayed_action(self.input_start_drop)
                 elif event.key == pygame.K_UP or event.key == pygame.K_w:
                     if self.inverted:
-                        self.delayed_action(input_start_drop)
+                        self.delayed_action(self.input_start_drop)
                     else:
                         self.input_rotate_single()
 
